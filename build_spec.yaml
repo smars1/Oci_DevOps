@@ -1,0 +1,42 @@
+version: 0.1
+component: build
+timeoutInSeconds: 10000
+shell: bash
+failImmediatelyOnError: true
+
+env:
+  vaultVariables:
+    ACCESS_KEY: "ocid1.vaultsecret.oc1.iad.amaaaaaa4u3umwqaq5bzue3v6aksz5sydruygyfw6qbc5fixbhjc4fl47acq"
+    SECRET_KEY: "ocid1.vaultsecret.oc1.iad.amaaaaaa4u3umwqaq7merk6hpoaps6mgcew7dzzjyrovj7wzcdkz4aecl43q"
+
+steps:
+  - type: Command
+    name: Hide secrets in logs
+    command: set +x
+
+  - type: Command
+    name: Init terraform
+    command: |
+      terraform init -no-color \
+        -backend-config="bucket=Test-Noprod-Terraform-state" \
+        -backend-config="namespace=mycompanynamespace" \
+        -backend-config="region=us-ashburn-1" \
+        -backend-config="key=terraform.tfstate" \
+        -backend-config="access_key=${ACCESS_KEY}" \
+        -backend-config="secret_key=${SECRET_KEY}"
+
+  - type: Command
+    name: Select workspace
+    command: terraform workspace select ${TARGET_ENV} -no-color
+
+  - type: Command
+    name: Refresh terraform
+    command: ./runtf.sh refresh -no-color
+
+  - type: Command
+    name: Fix git dates
+    command: ./fix_git.sh
+
+  - type: Command
+    name: Apply terraform
+    command: ./runtf.sh apply -no-color -auto-approve
